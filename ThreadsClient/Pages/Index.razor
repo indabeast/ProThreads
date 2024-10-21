@@ -1,0 +1,106 @@
+﻿@page "/"
+@using ThreadsClient.Service;
+@using shared;
+@inject ApiService apiService
+
+<PageTitle>Home</PageTitle>
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-6">
+            <h3>Create a New Thread</h3>
+            <div class="form-group">
+                <input type="text" class="form-control" @bind="newThreadTitle" placeholder="Title" />
+            </div>
+            <div class="form-group">
+                <textarea class="form-control" @bind="newThreadContent" placeholder="Content"></textarea>
+            </div>
+            <button class="btn btn-success" @onclick="CreateThread">Post Thread</button>
+        </div>
+    </div>
+
+    <div class="row mt-5">
+        <div class="col-md-12">
+            @if (threads == null) {
+                <p><em>Loading...</em></p>
+            } else {
+                <div class="list-group">
+                    @foreach (var thread in threads) {
+                        <div class="list-group-item">
+                            <h5 class="mb-1"><a href="/thread/@thread.Id">@thread.Title</a></h5>
+                            <p class="mb-1">@thread.Content</p>
+                            <small>Votes: @(thread.Upvotes - thread.Downvotes)</small>
+                            <div class="mt-2">
+                                <button class="btn btn-primary btn-sm" @onclick="() => UpvoteThread(thread.Id)">Upvote</button>
+                                <button class="btn btn-danger btn-sm" @onclick="() => DownvoteThread(thread.Id)">Downvote</button>
+                            </div>
+                            <div class="mt-3">
+                                <ul class="list-group">
+                                    @foreach (var comment in thread.Comments) {
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            @comment.Text
+                                            <div>
+                                                <button class="btn btn-primary btn-sm" @onclick="() => UpvoteComment(thread.Id, comment.Id)">Upvote</button>
+                                                <button class="btn btn-danger btn-sm" @onclick="() => DownvoteComment(thread.Id, comment.Id)">Downvote</button>
+                                            </div>
+                                        </li>
+                                    }
+                                </ul>
+                                <div class="input-group mt-2">
+                                    <input type="text" class="form-control" @bind="newCommentText" placeholder="Add a comment" />
+                                    <div class="input-group-append">
+                                        <button class="btn btn-success" @onclick="() => AddComment(thread.Id)">Post Comment</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Thread> threads;
+    private string newThreadTitle;
+    private string newThreadContent;
+    private string newCommentText;
+
+    protected override async Task OnInitializedAsync() {
+        threads = await apiService.GetThreads();
+    }
+
+    private async Task CreateThread() {
+        await apiService.CreateThread(newThreadTitle, newThreadContent, "AuthorName"); // Replace "AuthorName" with actual author name
+        newThreadTitle = string.Empty;
+        newThreadContent = string.Empty;
+        threads = await apiService.GetThreads();
+    }
+
+    private async Task UpvoteThread(int id) {
+        await apiService.UpvoteThread(id);
+        threads = await apiService.GetThreads();
+    }
+
+    private async Task DownvoteThread(int id) {
+        await apiService.DownvoteThread(id);
+        threads = await apiService.GetThreads();
+    }
+
+    private async Task UpvoteComment(int threadId, int commentId) {
+        await apiService.UpvoteComment(threadId, commentId);
+        threads = await apiService.GetThreads();
+    }
+
+    private async Task DownvoteComment(int threadId, int commentId) {
+        await apiService.DownvoteComment(threadId, commentId);
+        threads = await apiService.GetThreads();
+    }
+
+    private async Task AddComment(int threadId) {
+        await apiService.CreateComment(newCommentText, threadId, "AuthorName"); // Replace "AuthorName" with actual author name
+        newCommentText = string.Empty;
+        threads = await apiService.GetThreads();
+    }
+}
